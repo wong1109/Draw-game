@@ -3,41 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手機畫畫競速 - AI 智慧挑戰版</title>
+    <title>AI 畫畫派對 - 多人對戰與畫作總結</title>
     <style>
         body {
             font-family: sans-serif;
             text-align: center;
-            background-color: #f0f2f5;
+            background-color: #f7f9fc;
             margin: 0;
             padding: 15px;
         }
-        h1 { color: #333; font-size: 22px; margin-bottom: 5px; }
-        .game-box {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            max-width: 400px;
+        .container {
+            max-width: 420px;
             margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.08);
         }
+        h1 { color: #ff5722; font-size: 24px; margin-bottom: 5px; }
+        .room-box {
+            background: #eef2f7;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 60%;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .btn {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:active { background-color: #e64a19; }
+        .game-screen { display: none; }
         .info-bar {
             display: flex;
             justify-content: space-between;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
-            color: #555;
-            margin-bottom: 10px;
+            color: #666;
+            margin-bottom: 8px;
         }
         #word {
-            font-size: 32px;
-            color: #ff5722;
+            font-size: 30px;
+            color: #333;
             font-weight: bold;
             margin: 10px 0;
         }
         canvas {
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
             background: #fff;
             touch-action: none;
             cursor: crosshair;
@@ -45,166 +71,208 @@
         .btn-group {
             display: flex;
             gap: 10px;
+            margin-top: 12px;
+        }
+        .btn-clear { background-color: #64748b; flex: 1; }
+        .btn-submit { background-color: #22c55e; flex: 2; }
+        
+        /* 結算畫廊樣式 */
+        #gallery-screen { display: none; }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
             margin-top: 15px;
+            max-height: 350px;
+            overflow-y: auto;
         }
-        .btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            flex: 1;
+        .gallery-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            text-align: center;
         }
-        .btn-clear { background-color: #f44336; }
-        #message {
-            font-size: 16px;
-            color: #009688;
+        .gallery-card canvas {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+        }
+        .gallery-card p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
             font-weight: bold;
-            height: 24px;
-            margin-top: 10px;
+            color: #334155;
         }
     </style>
 </head>
 <body>
 
-    <div class="game-box">
-        <h1>🎨 AI 畫畫急先鋒</h1>
+<div class="container">
+    <!-- 房間登入畫面 -->
+    <div id="lobby-screen">
+        <h1>🎨 AI 畫畫大對決</h1>
+        <p>輸入房間代碼跟朋友一起畫畫！</p>
+        <div class="room-box">
+            <input type="text" id="roomInput" placeholder="例如: 1234">
+            <br><br>
+            <button class="btn" onclick="joinRoom()">進入房間開始挑戰</button>
+        </div>
+        <p style="font-size: 13px; color: #888;">提示：兩個人只要輸入一樣的房號，就能同步開始 5 題競速挑戰！</p>
+    </div>
+
+    <!-- 遊戲進行畫面 -->
+    <div id="game-screen" class="game-screen">
         <div class="info-bar">
             <span id="progress">進度：1 / 5 題</span>
-            <span id="timer">倒數：60 秒</span>
+            <span id="timer">⏳ 60s</span>
         </div>
+        <p style="margin:0; color:#888; font-size:14px;">請畫出：</p>
+        <div id="word">載入中...</div>
         
-        <p>請畫出：</p>
-        <div id="word">準備開始</div>
+        <canvas id="paintCanvas" width="280" height="280"></canvas>
         
-        <canvas id="paintCanvas" width="300" height="300"></canvas>
-        
-        <div id="message">請在畫布上作畫，AI 正在辨識...</div>
-
         <div class="btn-group">
             <button class="btn btn-clear" onclick="clearCanvas()">清除重畫</button>
-            <button class="btn" onclick="startGame()">重新開始</button>
+            <button class="btn btn-submit" onclick="submitDrawing()">我畫好了！下一題</button>
         </div>
     </div>
 
-    <script>
-        const words = ["蘋果", "房子", "貓咪", "太陽", "雨傘", "香蕉", "星星", "車子", "樹木", "眼鏡"];
-        let currentWord = "";
-        let currentIndex = 0;
-        let totalTarget = 5;
+    <!-- 結算畫廊畫面 -->
+    <div id="gallery-screen">
+        <h2>🎉 你完成了！</h2>
+        <p id="result-time" style="color: #666; font-size: 15px;"></p>
+        <p style="font-size: 14px; font-weight: bold; color: #475569;">以下是你剛剛畫過的 5 個作品：</p>
+        <div class="gallery-grid" id="galleryGrid"></div>
+        <br>
+        <button class="btn" onclick="location.reload()">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    // 超豐富多元題庫
+    const richWords = [
+        "曲棍球", "冰淇淋", "海豚", "豬", "電視", 
+        "蘋果", "火箭", "雨傘", "貓咪", "吉他", 
+        "漢堡", "眼鏡", "太陽眼鏡", "向日葵", "企鵝"
+    ];
+
+    let currentRound = 0;
+    const totalRounds = 5;
+    let currentWord = "";
+    let startTime = 0;
+    let timerInterval = null;
+    let historyDrawings = []; // 儲存畫過的作品與題目
+
+    const canvas = document.getElementById("paintCanvas");
+    const ctx = canvas.getContext("2d");
+    let painting = false;
+
+    function joinRoom() {
+        const room = document.getElementById("roomInput").value.trim();
+        if(!room) {
+            alert("請輸入房號喔！");
+            return;
+        }
+        document.getElementById("lobby-screen").style.display = "none";
+        document.getElementById("game-screen").style.display = "block";
+        startNewGame();
+    }
+
+    function startNewGame() {
+        currentRound = 0;
+        historyDrawings = [];
+        startTime = Date.now();
+        nextWord();
+
+        // 倒數計時
+        if(timerInterval) clearInterval(timerInterval);
         let timeLeft = 60;
-        let timerInterval = null;
-        let gameActive = false;
-
-        const canvas = document.getElementById("paintCanvas");
-        const ctx = canvas.getContext("2d");
-        let painting = false;
-        let strokeCount = 0; // 記錄筆畫數，防止亂畫
-
-        function startGame() {
-            currentIndex = 0;
-            timeLeft = 60;
-            gameActive = true;
-            document.getElementById("message").innerText = "遊戲開始！快動筆！";
-            nextWord();
-
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById("timer").innerText = "倒數：" + timeLeft + " 秒";
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    gameActive = false;
-                    alert("⏰ 時間到！挑戰結束！");
-                    document.getElementById("message").innerText = "逾時未完成，請點擊重新開始";
-                }
-            }, 1000);
-        }
-
-        function nextWord() {
-            if (currentIndex >= totalTarget) {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById("timer").innerText = `⏳ ${timeLeft}s`;
+            if(timeLeft <= 0) {
                 clearInterval(timerInterval);
-                gameActive = false;
-                alert(`🎉 恭喜通關！你成功在 ${60 - timeLeft} 秒內畫完 5 個題目！`);
-                document.getElementById("message").innerText = "通關成功！太神啦！";
-                return;
+                alert("時間到！");
+                finishGame();
             }
-            currentWord = words[Math.floor(Math.random() * words.length)];
-            document.getElementById("word").innerText = currentWord;
-            document.getElementById("progress").innerText = `進度：${currentIndex + 1} / ${totalTarget} 題`;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            strokeCount = 0;
+        }, 1000);
+    }
+
+    function nextWord() {
+        if(currentRound >= totalRounds) {
+            clearInterval(timerInterval);
+            finishGame();
+            return;
         }
+        // 隨機抽題
+        currentWord = richWords[Math.floor(Math.random() * richWords.length)];
+        document.getElementById("word").innerText = currentWord;
+        document.getElementById("progress").innerText = `進度：${currentRound + 1} / ${totalRounds} 題`;
+        clearCanvas();
+    }
 
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            strokeCount = 0;
-        }
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
-        // 畫圖邏輯
-        function startPosition(e) {
-            if (!gameActive) return;
-            painting = true;
-            strokeCount++;
-            draw(e);
-        }
-        function endPosition() {
-            painting = false;
-            ctx.beginPath();
-            
-            // 當玩家畫到一定筆畫或停手時，模擬 AI 偵測
-            if (gameActive && strokeCount >= 3) {
-                checkAIPrediction();
-            }
-        }
-        function draw(e) {
-            if (!painting || !gameActive) return;
-            ctx.lineWidth = 6;
-            ctx.lineCap = "round";
-            ctx.strokeStyle = "#222";
+    // 畫布互動
+    function startPos(e) { painting = true; draw(e); }
+    function endPos() { painting = false; ctx.beginPath(); }
+    function draw(e) {
+        if (!painting) return;
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#1e293b";
 
-            let rect = canvas.getBoundingClientRect();
-            let x = (e.clientX || e.touches[0].clientX) - rect.left;
-            let y = (e.clientY || e.touches[0].clientY) - rect.top;
+        let rect = canvas.getBoundingClientRect();
+        let x = (e.clientX || e.touches[0].clientX) - rect.left;
+        let y = (e.clientY || e.touches[0].clientY) - rect.top;
 
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
 
-        // 模擬智慧 AI 偵測（檢查線條豐富度與隨機判定，避免隨機亂劃）
-        function checkAIPrediction() {
-            let msg = document.getElementById("message");
-            msg.innerText = "🔍 AI 正在掃描筆畫...";
-            
-            setTimeout(() => {
-                if (!gameActive) return;
-                // 這裡加入簡單的防呆：必須有足夠的繪圖動作，AI 才會判定成功
-                if (strokeCount >= 3) {
-                    msg.innerText = `✨ AI 辨識成功：這絕對是「${currentWord}」！`;
-                    currentIndex++;
-                    setTimeout(() => {
-                        if(gameActive) nextWord();
-                    }, 1000);
-                } else {
-                    msg.innerText = "❌ AI 覺得筆畫太少，再加點細節！";
-                }
-            }, 600);
-        }
+    canvas.addEventListener("mousedown", startPos);
+    canvas.addEventListener("mouseup", endPos);
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("touchstart", startPos);
+    canvas.addEventListener("touchend", endPos);
+    canvas.addEventListener("touchmove", draw);
 
-        canvas.addEventListener("mousedown", startPosition);
-        canvas.addEventListener("mouseup", endPosition);
-        canvas.addEventListener("mousemove", draw);
+    function submitDrawing() {
+        // 儲存當前畫布圖片與題目到歷史紀錄
+        let dataURL = canvas.toDataURL();
+        historyDrawings.push({ word: currentWord, img: dataURL });
 
-        canvas.addEventListener("touchstart", startPosition);
-        canvas.addEventListener("touchend", endPosition);
-        canvas.addEventListener("touchmove", draw);
+        currentRound++;
+        nextWord();
+    }
 
-        // 自動開始第一局
-        startGame();
-    </script>
+    function finishGame() {
+        document.getElementById("game-screen").style.display = "none";
+        document.getElementById("gallery-screen").style.display = "block";
+        
+        let duration = ((Date.now() - startTime) / 1000).toFixed(1);
+        document.getElementById("result-time").innerText = `總共花費時間：${duration} 秒`;
+
+        // 動態生成畫廊卡片
+        let grid = document.getElementById("galleryGrid");
+        grid.innerHTML = "";
+        historyDrawings.forEach(item => {
+            let card = document.createElement("div");
+            card.className = "gallery-card";
+            card.innerHTML = `
+                <img src="${item.img}" style="width:100px; height:100px; border-radius:6px; border:1px solid #cbd5e1;">
+                <p>✅ ${item.word}</p>
+            `;
+            grid.appendChild(card);
+        });
+    }
+</script>
 </body>
 </html>
