@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手機畫畫小遊戲</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { color: #333; font-size: 24px; }
+        .game-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        #word {
+            font-size: 28px;
+            color: #ff5722;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        canvas {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: #fff;
+            touch-action: none; /* 防止手機畫畫時整個畫面跟著捲動 */
+            cursor: crosshair;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .btn:active { background-color: #45a049; }
+        #score { font-size: 18px; color: #666; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="game-box">
+        <h1>🎨 手機畫畫競速</h1>
+        <p>請畫出：</p>
+        <div id="word">載入中...</div>
+        
+        <!-- 畫布大小設計適合手機螢幕 -->
+        <canvas id="paintCanvas" width="300" height="300"></canvas>
+        
+        <div>
+            <button class="btn" onclick="checkDrawing()">我畫好了！下一題</button>
+        </div>
+        <div id="score">目前得分：0 分</div>
+    </div>
+
+    <script>
+        const words = ["蘋果", "房子", "貓咪", "太陽", "雨傘", "香蕉", "星星", "車子"];
+        let currentWord = "";
+        let score = 0;
+
+        const canvas = document.getElementById("paintCanvas");
+        const ctx = canvas.getContext("2d");
+        let painting = false;
+
+        function nextWord() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            document.getElementById("word").innerText = currentWord;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // 清空畫布
+        }
+
+        // 開始畫畫
+        function startPosition(e) {
+            painting = true;
+            draw(e);
+        }
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+        function draw(e) {
+            if (!painting) return;
+            ctx.lineWidth = 5;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#333";
+
+            // 取得觸控或滑鼠座標
+            let rect = canvas.getBoundingClientRect();
+            let x = (e.clientX || e.touches[0].clientX) - rect.left;
+            let y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+
+        // 事件監聽（支援手機觸控與電腦滑鼠）
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
+
+        canvas.addEventListener("touchstart", startPosition);
+        canvas.addEventListener("touchend", endPosition);
+        canvas.addEventListener("touchmove", draw);
+
+        // 點擊送出按鈕
+        function checkDrawing() {
+            // 目前為簡易版，點擊就直接給分並換下一題（之後我們再來串真正的 AI 辨識！）
+            score += 10;
+            document.getElementById("score").innerText = "目前得分：" + score + " 分";
+            alert("太棒了！答對啦 🎉");
+            nextWord();
+        }
+
+        // 初始化第一題
+        nextWord();
+    </script>
+</body>
+</html>
